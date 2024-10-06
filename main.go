@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 )
 
 var currentGameId = 0
@@ -41,25 +42,20 @@ const (
 	AwaitLevel
 )
 
-var gameState NewGameState = NotStarted
+var userGameStates = make(map[int64]NewGameState)
 
 func main() {
-	token := os.Getenv("PADEL_BOT_TOKEN")
-	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		log.Panic(err)
-	}
-
+	bot := initBot()
 	bot.Debug = true
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	debugLog(fmt.Sprint("Authorized on account: ", bot.Self.UserName))
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		if update.Message == nil {
+		if update.Message == nil && !update.Message.IsCommand() && !isUserCreatingGame(update.Message.From.ID) {
 			continue
 		}
 		if handleNewGameMessage(bot, update) {
@@ -71,8 +67,37 @@ func main() {
 	}
 }
 
+func debugLog(message string) {
+	// TODO: Add varargs for the client convenience
+	log.Print(message)
+}
+
+func isUserCreatingGame(userId int64) bool {
+	_, exists := userGameStates[userId]
+	return exists
+}
+
+func initBot() *tgbotapi.BotAPI {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+	token := os.Getenv("PADEL_BOT_TOKEN")
+	if token == "" {
+		log.Fatal("PADEL_BOT_TOKEN is not set")
+	}
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		log.Panic(err)
+	}
+	return bot
+}
+
 func handleNewGameMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
-	text, ok := transitionGameState(update.Message.Text)
+	if !isUserCreatingGame(update.Message.From.ID) {
+		return false
+	}
+	text, ok := transitionGameState(update.Message.From.ID, update.Message.Text)
 	if !ok {
 		return false
 	}
@@ -80,7 +105,8 @@ func handleNewGameMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 	return true
 }
 
-func transitionGameState(userInput string) (string, bool) {
+func transitionGameState(userId int64, input string) (string, bool) {
+	gameState := userGameStates[userId]
 	if gameState == NotStarted {
 		return "", false
 	}
@@ -91,27 +117,27 @@ func transitionGameState(userInput string) (string, bool) {
 	game := &activeGames[len(activeGames)-1]
 	switch gameState {
 	case Started:
-		gameState = AwaitDate
+		userGameStates[userId] = AwaitDate
 		return "Please enter the game date", true
 	case AwaitDate:
-		gameState = AwaitTime
-		game.Date = userInput
+		userGameStates[userId] = AwaitTime
+		game.Date = input
 		return "Please enter the game time", true
 	case AwaitTime:
-		gameState = AwaitDuration
-		game.Time = userInput
+		userGameStates[userId] = AwaitDuration
+		game.Time = input
 		return "Please enter the game duration", true
 	case AwaitDuration:
-		gameState = AwaitPlace
-		game.Duration = userInput
+		userGameStates[userId] = AwaitPlace
+		game.Duration = input
 		return "Please enter the game place", true
 	case AwaitPlace:
-		gameState = AwaitLevel
-		game.Place = userInput
+		userGameStates[userId] = AwaitLevel
+		game.Place = input
 		return "Please enter the game level", true
 	case AwaitLevel:
-		gameState = NotStarted
-		game.Level = userInput
+		userGameStates[userId] = NotStarted
+		game.Level = input
 		return "Thank you, the game has been created", true
 	}
 	return "", false
@@ -135,8 +161,9 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 
 func handleNewGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	gameState = Started
-	text, _ := transitionGameState("")
+	userId := update.Message.From.ID
+	userGameStates[userId] = Started
+	text, _ := transitionGameState(userId, "")
 	msg.Text = text
 	sendMessage(bot, msg)
 }
@@ -153,24 +180,47 @@ func handleJoinGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 	gameId, _ := strconv.Atoi(update.Message.Command()[4:])
 	game := &activeGames[slices.IndexFunc(activeGames, func(g Game) bool { return g.Id == gameId })]
-	game.Players = append(game.Players, "Test player")
+	userName := fmt.Sprint("@", update.Message.From.UserName)
+	if isPlayerInGame(*game, userName) || game.isFull() {
+		return
+	}
+	game.Players = append(game.Players, userName)
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Joined the game")
 	sendMessage(bot, msg)
 }
 
-func handleActiveGames(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	if len(activeGames) == 0 {
-		msg.Text = "No active games"
-	} else {
-		var strs []string
-		for _, g := range activeGames {
-			gameStr := fmt.Sprint("Date: ", g.Date, "\nTime: ", g.Time, "\nDuration: ", g.Duration, "\nLevel: ", g.Level, "\nPlace: ", g.Place, "\nJoin the game: /join", g.Id)
-			strs = append(strs, gameStr)
+func (g Game) isFull() bool {
+	return len(g.Players) == 4
+}
+
+func isPlayerInGame(game Game, userName string) bool {
+	for _, p := range game.Players {
+		if p == userName {
+			return true
 		}
-		msg.Text = strings.Join(strs, "\n\n")
 	}
-	sendMessage(bot, msg)
+	return false
+}
+
+func handleActiveGames(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	if len(activeGames) == 0 {
+		sendMessage(bot, tgbotapi.NewMessage(update.Message.Chat.ID, "No active games"))
+	} else {
+		for _, g := range activeGames {
+			gamePlayers := strings.Join(g.Players[:], ", ")
+			gameStr := fmt.Sprint(
+				"📅 Date: ", g.Date,
+				"\n⏰ Time: ", g.Time,
+				"\n⏲️ Duration: ", g.Duration,
+				"\n📊 Level: ", g.Level,
+				"\n📍 Location: ", g.Place,
+				"\n🏋🏻‍♂️ Players: ", gamePlayers,
+				"\nJoin the game: /join", g.Id,
+			)
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, gameStr)
+			sendMessage(bot, msg)
+		}
+	}
 }
 
 func sendMessage(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
