@@ -15,20 +15,21 @@ import (
 var currentGameId = 0
 
 type Game struct {
-	Id       int
-	Date     string
-	Time     string
-	Duration string
-	Place    string
-	Level    string
-	Players  []string
+	Id          int
+	Date        string
+	Time        string
+	Duration    string
+	Place       string
+	Level       string
+	Players     []string
+	IsPublished bool
 }
 
 func (g Game) String() string {
 	return fmt.Sprint("Id: ", g.Id, ", date: ", g.Date, ", time: ", g.Time, ", duration: ", g.Duration, ", place: ", g.Place, ", level: ", g.Level, ", players: ", g.Players)
 }
 
-var activeGames []Game
+var games []Game
 
 type NewGameState int
 
@@ -111,10 +112,10 @@ func transitionGameState(userId int64, input string) (string, bool) {
 		return "", false
 	}
 	if gameState == Started {
-		activeGames = append(activeGames, Game{Id: currentGameId})
+		games = append(games, Game{Id: currentGameId})
 		currentGameId++
 	}
-	game := &activeGames[len(activeGames)-1]
+	game := &games[len(games)-1]
 	switch gameState {
 	case Started:
 		userGameStates[userId] = AwaitDate
@@ -138,6 +139,7 @@ func transitionGameState(userId int64, input string) (string, bool) {
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
+		game.IsPublished = true
 		return "Thank you, the game has been created", true
 	}
 	return "", false
@@ -178,11 +180,11 @@ func handleHelp(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 }
 
 func handleJoinGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	if len(activeGames) == 0 {
+	if len(games) == 0 {
 		return
 	}
 	gameId, _ := strconv.Atoi(update.Message.Command()[4:])
-	game := &activeGames[slices.IndexFunc(activeGames, func(g Game) bool { return g.Id == gameId })]
+	game := &games[slices.IndexFunc(games, func(g Game) bool { return g.Id == gameId })]
 	userName := fmt.Sprint("@", update.Message.From.UserName)
 	if isPlayerInGame(*game, userName) || game.isFull() {
 		return
@@ -206,6 +208,12 @@ func isPlayerInGame(game Game, userName string) bool {
 }
 
 func handleActiveGames(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	activeGames := make([]Game, 0)
+	for _, g := range games {
+		if g.IsPublished {
+			activeGames = append(activeGames, g)
+		}
+	}
 	if len(activeGames) == 0 {
 		sendMessage(bot, tgbotapi.NewMessage(update.Message.Chat.ID, "No active games"))
 	} else {
