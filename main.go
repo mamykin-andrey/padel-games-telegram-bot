@@ -95,21 +95,19 @@ func initBot() *tgbotapi.BotAPI {
 }
 
 func handleNewGameMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
-	if !isUserCreatingGame(update.Message.From.ID) {
+	if !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
 		return false
 	}
-	text, ok := transitionGameState(update.Message.From.ID, update.Message.Text)
-	if !ok {
-		return false
-	}
-	sendMessage(bot, tgbotapi.NewMessage(update.Message.Chat.ID, text))
-	return true
+	ok := transitionGameState(bot, update)
+	return ok
 }
 
-func transitionGameState(userId int64, input string) (string, bool) {
+func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
+	userId := update.Message.From.ID
+	input := update.Message.Text
 	gameState := userGameStates[userId]
 	if gameState == NotStarted {
-		return "", false
+		return false
 	}
 	if gameState == Started {
 		games = append(games, Game{Id: currentGameId})
@@ -119,30 +117,42 @@ func transitionGameState(userId int64, input string) (string, bool) {
 	switch gameState {
 	case Started:
 		userGameStates[userId] = AwaitDate
-		return "Please enter the game date", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game date")
+		sendMessage(bot, msg)
+		return true
 	case AwaitDate:
 		userGameStates[userId] = AwaitTime
 		game.Date = input
-		return "Please enter the game time", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game time")
+		sendMessage(bot, msg)
+		return true
 	case AwaitTime:
 		userGameStates[userId] = AwaitDuration
 		game.Time = input
-		return "Please enter the game duration", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game duration")
+		sendMessage(bot, msg)
+		return true
 	case AwaitDuration:
 		userGameStates[userId] = AwaitPlace
 		game.Duration = input
-		return "Please enter the game place", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game place")
+		sendMessage(bot, msg)
+		return true
 	case AwaitPlace:
 		userGameStates[userId] = AwaitLevel
 		game.Place = input
-		return "Please enter the game level", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game level")
+		sendMessage(bot, msg)
+		return true
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
-		return "Thank you, the game has been created", true
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Thank you, the game has been created")
+		sendMessage(bot, msg)
+		return true
 	}
-	return "", false
+	return false
 }
 
 func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
@@ -165,12 +175,8 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 }
 
 func handleNewGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	userId := update.Message.From.ID
-	userGameStates[userId] = Started
-	text, _ := transitionGameState(userId, "")
-	msg.Text = text
-	sendMessage(bot, msg)
+	userGameStates[update.Message.From.ID] = Started
+	transitionGameState(bot, update)
 }
 
 func handleHelp(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
