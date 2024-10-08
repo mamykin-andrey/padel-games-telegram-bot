@@ -58,10 +58,10 @@ func main() {
 		if update.Message == nil && !update.Message.IsCommand() && !isUserCreatingGame(update.Message.From.ID) {
 			continue
 		}
-		if handleNewGameMessage(bot, update) {
+		if handleCommand(bot, update) {
 			continue
 		}
-		if handleCommand(bot, update) {
+		if handleNewGameMessage(bot, update) {
 			continue
 		}
 	}
@@ -151,12 +151,15 @@ func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 	switch update.Message.Command() {
 	case "help":
 		handleHelp(bot, update)
+		return true
 	case "new":
 		handleNewGame(bot, update)
+		return true
 	case "games":
 		handleActiveGames(bot, update)
+		return true
 	}
-	return true
+	return false
 }
 
 func handleNewGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
