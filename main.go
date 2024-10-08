@@ -98,8 +98,7 @@ func handleNewGameMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 	if !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
 		return false
 	}
-	ok := transitionGameState(bot, update)
-	return ok
+	return transitionGameState(bot, update)
 }
 
 func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
@@ -148,8 +147,7 @@ func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Thank you, the game has been created")
-		sendMessage(bot, msg)
+		handleActiveGames(bot, update)
 		return true
 	}
 	return false
