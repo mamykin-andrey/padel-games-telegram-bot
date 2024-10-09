@@ -2,6 +2,7 @@
 
 [![Go](https://img.shields.io/badge/Go-1.19-blue.svg)](https://golang.org)
 [![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot-API-blue)](https://core.telegram.org/bots/api)
+[GO bindings](https://github.com/go-telegram-bot-api/telegram-bot-api)
 
 This Telegram bot is written in Go and helps padel enthusiasts organize games effortlessly. With this bot, users can create new games, view active games, and join games with other players. It supports multiple commands for smooth game management.
 
