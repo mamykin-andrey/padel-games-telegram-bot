@@ -15,14 +15,15 @@ import (
 var currentGameId = 0
 
 type Game struct {
-	Id          int
-	Date        string
-	Time        string
-	Duration    string
-	Place       string
-	Level       string
-	Players     []string
-	IsPublished bool
+	Id            int
+	Date          string
+	Time          string
+	Duration      string
+	Place         string
+	Level         string
+	Players       []string
+	NumberOfSpots int
+	IsPublished   bool
 }
 
 func (g Game) String() string {
@@ -40,6 +41,7 @@ const (
 	AwaitTime
 	AwaitDuration
 	AwaitPlace
+	AwaitPlayers
 	AwaitLevel
 )
 
@@ -147,8 +149,19 @@ func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitPlace:
-		userGameStates[userId] = AwaitLevel
+		userGameStates[userId] = AwaitPlayers
 		game.Place = input
+		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter how many spots you have")
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
+		return true
+	case AwaitPlayers:
+		userGameStates[userId] = AwaitLevel
+		num, err := strconv.Atoi(input)
+		if err != nil || num < 1 || num > 3 {
+			// TODO: add error handling
+			return true
+		}
+		game.NumberOfSpots = num
 		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game level")
 		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
@@ -221,7 +234,7 @@ func handleJoinGame(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 }
 
 func (g Game) isFull() bool {
-	return len(g.Players) == 4
+	return len(g.Players) == g.NumberOfSpots
 }
 
 func isPlayerInGame(game Game, userName string) bool {
@@ -251,7 +264,7 @@ func handleActiveGames(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 				"\n⏲️ Duration: ", g.Duration,
 				"\n📊 Level: ", g.Level,
 				"\n📍 Location: ", g.Place,
-				"\n🏋🏻‍♂️ Players: ", gamePlayers,
+				"\n🏋🏻‍♂️ Players: ", 4-g.NumberOfSpots, " + ", gamePlayers,
 				"\nJoin the game: /join", g.Id,
 			)
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, gameStr)
