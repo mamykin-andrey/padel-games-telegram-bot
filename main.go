@@ -56,7 +56,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		if update.Message == nil && !update.Message.IsCommand() && !isUserCreatingGame(update.Message.From.ID) {
+		if update.Message == nil || (!update.Message.IsCommand() && !isUserCreatingGame(update.Message.From.ID)) {
 			continue
 		}
 		if handleCommand(bot, update) {
@@ -112,6 +112,8 @@ func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 	userId := update.Message.From.ID
 	input := update.Message.Text
 	gameState := userGameStates[userId]
+	userMessageId := update.Message.MessageID
+	chatId := update.Message.Chat.ID
 	if gameState == NotStarted {
 		return false
 	}
@@ -123,41 +125,54 @@ func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 	switch gameState {
 	case Started:
 		userGameStates[userId] = AwaitDate
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game date")
+		msg := tgbotapi.NewMessage(chatId, "Please enter the game date")
 		sendMessage(bot, msg)
 		return true
 	case AwaitDate:
 		userGameStates[userId] = AwaitTime
 		game.Date = input
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game time")
-		sendMessage(bot, msg)
+		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game time")
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitTime:
 		userGameStates[userId] = AwaitDuration
 		game.Time = input
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game duration")
-		sendMessage(bot, msg)
+		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game duration")
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitDuration:
 		userGameStates[userId] = AwaitPlace
 		game.Duration = input
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game place")
-		sendMessage(bot, msg)
+		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game place")
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitPlace:
 		userGameStates[userId] = AwaitLevel
 		game.Place = input
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter the game level")
-		sendMessage(bot, msg)
+		editMessage(bot, chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game level")
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
+		game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
+		deleteMessage(bot, update.Message.Chat.ID, userMessageId)
+		deleteMessage(bot, update.Message.Chat.ID, update.Message.ReplyToMessage.MessageID)
 		handleActiveGames(bot, update)
 		return true
 	}
 	return false
+}
+
+func editMessage(bot *tgbotapi.BotAPI, chatId int64, messageId int, newText string) {
+	editMessageConfig := tgbotapi.NewEditMessageText(chatId, messageId, newText)
+	bot.Request(editMessageConfig)
+}
+
+func deleteMessage(bot *tgbotapi.BotAPI, chatId int64, messageId int) {
+	deleteMessageConfig := tgbotapi.NewDeleteMessage(chatId, messageId)
+	bot.Request(deleteMessageConfig)
 }
 
 func handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
