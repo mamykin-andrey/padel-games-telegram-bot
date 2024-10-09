@@ -95,10 +95,17 @@ func initBot() *tgbotapi.BotAPI {
 }
 
 func handleNewGameMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
-	if !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
+	if !isReplyToTheBot(bot, update) || !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
 		return false
 	}
 	return transitionGameState(bot, update)
+}
+
+func isReplyToTheBot(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
+	if update.Message.ReplyToMessage == nil {
+		return false
+	}
+	return bot.Self.ID == update.Message.ReplyToMessage.From.ID
 }
 
 func transitionGameState(bot *tgbotapi.BotAPI, update tgbotapi.Update) bool {
