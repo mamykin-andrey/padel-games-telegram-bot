@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"regexp"
 
 	"github.com/joho/godotenv"
 )
@@ -18,4 +19,9 @@ func getEnvValue(envName string) (string, bool) {
 		return "", false
 	}
 	return os.Getenv(envName), true
+}
+
+func removeDigits(str string) string {
+	regex := regexp.MustCompile("[0-9]+")
+	return regex.ReplaceAllString(str, "")
 }
