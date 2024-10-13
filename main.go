@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"main/handlers"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -13,8 +14,8 @@ type CommandHandler interface {
 const botTokenEnvName = "PADEL_BOT_TOKEN"
 
 var bot *tgbotapi.BotAPI // TODO: Wrap with an interface
-var handlers map[string]CommandHandler = make(map[string]CommandHandler)
-var newGameHandler *NewGameCommandHandler
+var registeredHandlers map[string]CommandHandler = make(map[string]CommandHandler)
+var newGameHandler *handlers.NewGameCommandHandler
 
 func main() {
 	bot = initBot()
@@ -22,11 +23,11 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	handlers["join"] = NewJoinGameCommandHandler(bot)
-	handlers["help"] = NewHelpCommandHandler(bot)
-	handlers["games"] = NewActiveGamesCommandHandler(bot)
-	newGameHandler = NewNewGameCommandHandler(bot)
-	handlers["new"] = newGameHandler
+	registeredHandlers["join"] = handlers.NewJoinGameCommandHandler(bot)
+	registeredHandlers["help"] = handlers.NewHelpCommandHandler(bot)
+	registeredHandlers["games"] = handlers.NewActiveGamesCommandHandler(bot)
+	newGameHandler = handlers.NewNewGameCommandHandler(bot)
+	registeredHandlers["new"] = newGameHandler
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
