@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"main/models"
+	"main/shared"
 	"slices"
 	"strconv"
 
@@ -17,13 +19,13 @@ func NewJoinGameCommandHandler(bot *tgbotapi.BotAPI) *JoinGameCommandHandler {
 }
 
 func (h *JoinGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
-	if len(games) == 0 {
+	if len(shared.Games) == 0 {
 		return true
 	}
 	gameId, _ := strconv.Atoi(update.Message.Command()[4:])
-	game := &games[slices.IndexFunc(games, func(g Game) bool { return g.Id == gameId })]
+	game := &shared.Games[slices.IndexFunc(shared.Games, func(g models.Game) bool { return g.Id == gameId })]
 	userName := fmt.Sprint("@", update.Message.From.UserName)
-	if isPlayerInGame(*game, userName) || game.isFull() {
+	if isPlayerInGame(*game, userName) || game.IsFull() {
 		sendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Already joined the game"))
 		return true
 	}
@@ -32,7 +34,7 @@ func (h *JoinGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 	return true
 }
 
-func isPlayerInGame(game Game, userName string) bool {
+func isPlayerInGame(game models.Game, userName string) bool {
 	for _, p := range game.Players {
 		if p == userName {
 			return true

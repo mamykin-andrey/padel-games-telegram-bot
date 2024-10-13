@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"main/models"
+	"main/shared"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -16,8 +18,8 @@ func NewActiveGamesCommandHandler(bot *tgbotapi.BotAPI) *ActiveGamesCommandHandl
 }
 
 func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
-	activeGames := make([]Game, 0)
-	for _, g := range games {
+	activeGames := make([]models.Game, 0)
+	for _, g := range shared.Games {
 		if g.IsPublished {
 			activeGames = append(activeGames, g)
 		}

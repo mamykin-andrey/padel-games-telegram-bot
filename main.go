@@ -12,7 +12,6 @@ type CommandHandler interface {
 
 const botTokenEnvName = "PADEL_BOT_TOKEN"
 
-var games []Game
 var bot *tgbotapi.BotAPI // TODO: Wrap with an interface
 var handlers map[string]CommandHandler = make(map[string]CommandHandler)
 var newGameHandler *NewGameCommandHandler

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"main/models"
+	"main/shared"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -59,10 +61,10 @@ func transitionGameState(update tgbotapi.Update) bool {
 		return false
 	}
 	if gameState == Started {
-		games = append(games, Game{Id: currentGameId})
+		shared.Games = append(shared.Games, models.Game{Id: currentGameId})
 		currentGameId++
 	}
-	game := &games[len(games)-1]
+	game := &shared.Games[len(shared.Games)-1]
 	switch gameState {
 	case Started:
 		userGameStates[userId] = AwaitDate

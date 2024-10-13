@@ -1,4 +1,4 @@
-package main
+package models
 
 import "fmt"
 
@@ -18,6 +18,6 @@ func (g Game) String() string {
 	return fmt.Sprint("Id: ", g.Id, ", date: ", g.Date, ", time: ", g.Time, ", duration: ", g.Duration, ", place: ", g.Place, ", level: ", g.Level, ", players: ", g.Players)
 }
 
-func (g Game) isFull() bool {
+func (g Game) IsFull() bool {
 	return len(g.Players) == g.NumberOfSpots
 }
