@@ -23,27 +23,27 @@ const (
 )
 
 type NewGameCommandHandler struct {
-	bot *tgbotapi.BotAPI
+	bot shared.BotAPI
 }
 
 var currentGameId = 0
 var userGameStates = make(map[int64]NewGameState)
 
-func NewNewGameCommandHandler(bot *tgbotapi.BotAPI) *NewGameCommandHandler {
+func NewNewGameCommandHandler(bot shared.BotAPI) *NewGameCommandHandler {
 	return &NewGameCommandHandler{bot: bot}
 }
 
 func (h *NewGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 	userGameStates[update.Message.From.ID] = Started
-	transitionGameState(update)
+	transitionGameState(h.bot, update)
 	return true
 }
 
 func (h *NewGameCommandHandler) HandleNewGameMessage(update tgbotapi.Update) bool {
-	if !isReplyToTheBot(update) || !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
+	if !isReplyToTheBot(h.bot, update) || !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
 		return false
 	}
-	return transitionGameState(update)
+	return transitionGameState(h.bot, update)
 }
 
 func isUserCreatingGame(userId int64) bool {
@@ -51,7 +51,7 @@ func isUserCreatingGame(userId int64) bool {
 	return exists
 }
 
-func transitionGameState(update tgbotapi.Update) bool {
+func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
 	userId := update.Message.From.ID
 	input := update.Message.Text
 	gameState := userGameStates[userId]
@@ -69,58 +69,58 @@ func transitionGameState(update tgbotapi.Update) bool {
 	case Started:
 		userGameStates[userId] = AwaitDate
 		msg := tgbotapi.NewMessage(chatId, "Please enter the game date")
-		sendMessage(msg)
+		bot.SendMessage(msg)
 		return true
 	case AwaitDate:
 		userGameStates[userId] = AwaitTime
 		game.Date = input
-		editMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game time")
-		deleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game time")
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitTime:
 		userGameStates[userId] = AwaitDuration
 		game.Time = input
-		editMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game duration")
-		deleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game duration")
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitDuration:
 		userGameStates[userId] = AwaitPlace
 		game.Duration = input
-		editMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game place")
-		deleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game place")
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitPlace:
 		userGameStates[userId] = AwaitPlayers
 		game.Place = input
-		editMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter how many spots you have")
-		deleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter how many spots you have")
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitPlayers:
 		userGameStates[userId] = AwaitLevel
 		num, err := strconv.Atoi(input)
 		if err != nil || num < 1 || num > 3 {
-			sendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter a correct number"))
+			bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter a correct number"))
 			return true
 		}
 		game.NumberOfSpots = num
-		editMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game level")
-		deleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game level")
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		return true
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
 		game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
-		deleteMessage(update.Message.Chat.ID, userMessageId)
-		deleteMessage(update.Message.Chat.ID, update.Message.ReplyToMessage.MessageID)
+		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.DeleteMessage(update.Message.Chat.ID, update.Message.ReplyToMessage.MessageID)
 		return NewActiveGamesCommandHandler(bot).HandleCommand(update)
 	}
 	return false
 }
 
-func isReplyToTheBot(update tgbotapi.Update) bool {
+func isReplyToTheBot(bot shared.BotAPI, update tgbotapi.Update) bool {
 	if update.Message.ReplyToMessage == nil {
 		return false
 	}
-	return bot.Self.ID == update.Message.ReplyToMessage.From.ID
+	return bot.ID() == update.Message.ReplyToMessage.From.ID
 }

@@ -11,10 +11,10 @@ import (
 )
 
 type JoinGameCommandHandler struct {
-	bot *tgbotapi.BotAPI
+	bot shared.BotAPI
 }
 
-func NewJoinGameCommandHandler(bot *tgbotapi.BotAPI) *JoinGameCommandHandler {
+func NewJoinGameCommandHandler(bot shared.BotAPI) *JoinGameCommandHandler {
 	return &JoinGameCommandHandler{bot: bot}
 }
 
@@ -26,11 +26,11 @@ func (h *JoinGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 	game := &shared.Games[slices.IndexFunc(shared.Games, func(g models.Game) bool { return g.Id == gameId })]
 	userName := fmt.Sprint("@", update.Message.From.UserName)
 	if isPlayerInGame(*game, userName) || game.IsFull() {
-		sendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Already joined the game"))
+		h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Already joined the game"))
 		return true
 	}
 	game.Players = append(game.Players, userName)
-	sendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Joined the game"))
+	h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Joined the game"))
 	return true
 }
 

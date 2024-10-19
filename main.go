@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"main/handlers"
+	"main/shared"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -13,12 +14,14 @@ type CommandHandler interface {
 
 const botTokenEnvName = "PADEL_BOT_TOKEN"
 
-var bot *tgbotapi.BotAPI // TODO: Wrap with an interface
+var bot shared.BotAPI
 var registeredHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 var newGameHandler *handlers.NewGameCommandHandler
 
 func main() {
-	bot = initBot()
+	bot = shared.BindingsBotAPI{
+		BindingsBot: initBot(),
+	}
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -49,7 +52,7 @@ func initBot() *tgbotapi.BotAPI {
 		log.Panicf("%s is not set", botTokenEnvName)
 	}
 	var err error
-	bot, err = tgbotapi.NewBotAPI(token)
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -60,28 +63,8 @@ func initBot() *tgbotapi.BotAPI {
 
 func handleCommand(update tgbotapi.Update) bool {
 	command := removeDigits(update.Message.Command())
-	if handler, exists := handlers[command]; exists {
+	if handler, exists := registeredHandlers[command]; exists {
 		return handler.HandleCommand(update)
 	}
 	return false
-}
-
-func editMessage(chatId int64, messageId int, newText string) {
-	editMessageConfig := tgbotapi.NewEditMessageText(chatId, messageId, newText)
-	if _, err := bot.Request(editMessageConfig); err != nil {
-		log.Panic(err)
-	}
-}
-
-func deleteMessage(chatId int64, messageId int) {
-	deleteMessageConfig := tgbotapi.NewDeleteMessage(chatId, messageId)
-	if _, err := bot.Request(deleteMessageConfig); err != nil {
-		log.Panic(err)
-	}
-}
-
-func sendMessage(msg tgbotapi.MessageConfig) {
-	if _, err := bot.Send(msg); err != nil {
-		log.Panic(err)
-	}
 }

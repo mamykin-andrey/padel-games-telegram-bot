@@ -10,10 +10,10 @@ import (
 )
 
 type ActiveGamesCommandHandler struct {
-	bot *tgbotapi.BotAPI
+	bot shared.BotAPI
 }
 
-func NewActiveGamesCommandHandler(bot *tgbotapi.BotAPI) *ActiveGamesCommandHandler {
+func NewActiveGamesCommandHandler(bot shared.BotAPI) *ActiveGamesCommandHandler {
 	return &ActiveGamesCommandHandler{bot: bot}
 }
 
@@ -25,7 +25,7 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 		}
 	}
 	if len(activeGames) == 0 {
-		sendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "No active games"))
+		h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "No active games"))
 	} else {
 		for _, g := range activeGames {
 			gamePlayers := strings.Join(g.Players[:], ", ")
@@ -39,7 +39,7 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 				"\nJoin the game: /join", g.Id,
 			)
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, gameStr)
-			sendMessage(msg)
+			h.bot.SendMessage(msg)
 		}
 	}
 	return true
