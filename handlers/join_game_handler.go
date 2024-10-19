@@ -31,7 +31,7 @@ func (h *JoinGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 	}
 	game.Players = append(game.Players, userName)
 	h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Joined the game"))
-	return true
+	return NewActiveGamesCommandHandler(h.bot).HandleCommand(update)
 }
 
 func isPlayerInGame(game models.Game, userName string) bool {

@@ -29,6 +29,7 @@ func main() {
 	registeredHandlers["join"] = handlers.NewJoinGameCommandHandler(bot)
 	registeredHandlers["help"] = handlers.NewHelpCommandHandler(bot)
 	registeredHandlers["games"] = handlers.NewActiveGamesCommandHandler(bot)
+	registeredHandlers["delete"] = handlers.NewDeleteGameCommandHandler(bot)
 	newGameHandler = handlers.NewNewGameCommandHandler(bot)
 	registeredHandlers["new"] = newGameHandler
 

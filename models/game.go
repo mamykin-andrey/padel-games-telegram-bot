@@ -11,6 +11,7 @@ type Game struct {
 	Level         string
 	Players       []string
 	NumberOfSpots int
+	CreatorId     int64
 	IsPublished   bool
 }
 

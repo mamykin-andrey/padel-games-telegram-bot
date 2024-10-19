@@ -38,7 +38,8 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 			"\n📊 Level: ", g.Level,
 			"\n📍 Location: ", g.Place,
 			"\n🏋🏻‍♂️ Players: ", 4-g.NumberOfSpots, " + ", gamePlayers,
-			"\nJoin the game: /join", g.Id,
+			"\nJoin: /join", g.Id,
+			"\nDelete: /delete", g.Id,
 		)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, gameStr)
 		h.bot.SendMessage(msg)

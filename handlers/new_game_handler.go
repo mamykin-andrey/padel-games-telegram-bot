@@ -111,6 +111,7 @@ func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
 		game.Level = input
 		game.IsPublished = true
 		game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
+		game.CreatorId = update.Message.From.ID
 		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
 		bot.DeleteMessage(update.Message.Chat.ID, update.Message.ReplyToMessage.MessageID)
 		return NewActiveGamesCommandHandler(bot).HandleCommand(update)
