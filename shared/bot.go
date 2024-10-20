@@ -10,8 +10,10 @@ type BotAPI interface {
 	EditMessage(chatId int64, messageId int, newText string)
 	DeleteMessage(chatId int64, messageId int)
 	SendMessage(msg tgbotapi.MessageConfig)
+	EditMessageTextAndMarkup(chatId int64, messageId int, newText string, replyMarkup tgbotapi.InlineKeyboardMarkup)
 	ID() int64
 	GetUpdatesChan(config tgbotapi.UpdateConfig) tgbotapi.UpdatesChannel
+	EditMessageTextAndRemoveMarkup(chatId int64, messageId int, newText string)
 }
 
 type BindingsBotAPI struct {
@@ -19,15 +21,36 @@ type BindingsBotAPI struct {
 }
 
 func (bot BindingsBotAPI) EditMessage(chatId int64, messageId int, newText string) {
-	editMessageConfig := tgbotapi.NewEditMessageText(chatId, messageId, newText)
-	if _, err := bot.BindingsBot.Request(editMessageConfig); err != nil {
+	config := tgbotapi.NewEditMessageText(chatId, messageId, newText)
+	if _, err := bot.BindingsBot.Request(config); err != nil {
+		log.Panic(err)
+	}
+}
+
+func (bot BindingsBotAPI) EditMessageTextAndRemoveMarkup(chatId int64, messageId int, newText string) {
+	config := tgbotapi.EditMessageTextConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:      chatId,
+			MessageID:   messageId,
+			ReplyMarkup: nil,
+		},
+		Text: newText,
+	}
+	if _, err := bot.BindingsBot.Request(config); err != nil {
+		log.Panic(err)
+	}
+}
+
+func (bot BindingsBotAPI) EditMessageTextAndMarkup(chatId int64, messageId int, newText string, replyMarkup tgbotapi.InlineKeyboardMarkup) {
+	config := tgbotapi.NewEditMessageTextAndMarkup(chatId, messageId, newText, replyMarkup)
+	if _, err := bot.BindingsBot.Request(config); err != nil {
 		log.Panic(err)
 	}
 }
 
 func (bot BindingsBotAPI) DeleteMessage(chatId int64, messageId int) {
-	deleteMessageConfig := tgbotapi.NewDeleteMessage(chatId, messageId)
-	if _, err := bot.BindingsBot.Request(deleteMessageConfig); err != nil {
+	config := tgbotapi.NewDeleteMessage(chatId, messageId)
+	if _, err := bot.BindingsBot.Request(config); err != nil {
 		log.Panic(err)
 	}
 }

@@ -19,6 +19,11 @@ func NewActiveGamesCommandHandler(bot shared.BotAPI) *ActiveGamesCommandHandler 
 }
 
 func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
+	h.ShowAllGames(update.Message.Chat.ID)
+	return true
+}
+
+func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
 	activeGames := make([]models.Game, 0)
 	for _, g := range shared.Games {
 		if !isDatePassed(g.Date) && g.IsPublished {
@@ -26,8 +31,7 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 		}
 	}
 	if len(activeGames) == 0 {
-		h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "No active games"))
-		return true
+		h.bot.SendMessage(tgbotapi.NewMessage(chatId, "No active games"))
 	}
 	for _, g := range activeGames {
 		gamePlayers := strings.Join(g.Players[:], ", ")
@@ -41,10 +45,9 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 			"\nJoin: /join", g.Id,
 			"\nDelete: /delete", g.Id,
 		)
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, gameStr)
+		msg := tgbotapi.NewMessage(chatId, gameStr)
 		h.bot.SendMessage(msg)
 	}
-	return true
 }
 
 func tryToParseDate(dateStr string) (time.Time, bool) {

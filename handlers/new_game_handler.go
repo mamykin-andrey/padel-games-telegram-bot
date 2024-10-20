@@ -40,7 +40,7 @@ func (h *NewGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 }
 
 func (h *NewGameCommandHandler) HandleNewGameMessage(update tgbotapi.Update) bool {
-	if !isReplyToTheBot(h.bot, update) || !isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand() {
+	if !isReplyToTheBot(h.bot, update) || (update.Message != nil && (!isUserCreatingGame(update.Message.From.ID) || update.Message.IsCommand())) {
 		return false
 	}
 	return transitionGameState(h.bot, update)
@@ -52,11 +52,29 @@ func isUserCreatingGame(userId int64) bool {
 }
 
 func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
-	userId := update.Message.From.ID
-	input := update.Message.Text
+	var input string
+	var userId int64
+	var userMessageId int
+	var messageId int
+	var chatId int64
+	if update.Message != nil {
+		input = update.Message.Text
+		userId = update.Message.From.ID
+		userMessageId = update.Message.MessageID
+		chatId = update.Message.Chat.ID
+		if update.Message.ReplyToMessage != nil {
+			messageId = update.Message.ReplyToMessage.MessageID
+		} else {
+			messageId = -1
+		}
+	} else {
+		input = update.CallbackQuery.Data
+		userId = update.CallbackQuery.From.ID
+		userMessageId = update.CallbackQuery.Message.MessageID
+		chatId = update.CallbackQuery.Message.Chat.ID
+		messageId = update.CallbackQuery.Message.MessageID
+	}
 	gameState := userGameStates[userId]
-	userMessageId := update.Message.MessageID
-	chatId := update.Message.Chat.ID
 	if gameState == NotStarted {
 		return false
 	}
@@ -74,52 +92,84 @@ func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
 	case AwaitDate:
 		userGameStates[userId] = AwaitTime
 		game.Date = input
-		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game time")
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, messageId, "Please enter the game time")
+		bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitTime:
 		userGameStates[userId] = AwaitDuration
 		game.Time = input
-		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game duration")
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, messageId, "Please enter the game duration")
+		bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitDuration:
 		userGameStates[userId] = AwaitPlace
 		game.Duration = input
-		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game place")
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		bot.EditMessage(chatId, messageId, "Please enter the game place")
+		bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitPlace:
 		userGameStates[userId] = AwaitPlayers
 		game.Place = input
-		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter how many spots you have")
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		spotsKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("1", "1"),
+				tgbotapi.NewInlineKeyboardButtonData("2", "2"),
+				tgbotapi.NewInlineKeyboardButtonData("3", "3"),
+			),
+		)
+		bot.EditMessageTextAndMarkup(chatId, messageId, "Please enter how many spots you have", spotsKeyboard)
+		bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitPlayers:
 		userGameStates[userId] = AwaitLevel
 		num, err := strconv.Atoi(input)
 		if err != nil || num < 1 || num > 3 {
-			bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Please enter a correct number"))
+			bot.EditMessage(chatId, messageId, "Please enter a correct number")
+			bot.DeleteMessage(chatId, userMessageId)
 			return true
 		}
 		game.NumberOfSpots = num
-		bot.EditMessage(chatId, update.Message.ReplyToMessage.MessageID, "Please enter the game level")
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
+		levelKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("low begin", "low begin"),
+				tgbotapi.NewInlineKeyboardButtonData("mid begin", "mid begin"),
+				tgbotapi.NewInlineKeyboardButtonData("high begin", "high begin"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("low int", "low int"),
+				tgbotapi.NewInlineKeyboardButtonData("mid int", "mid int"),
+				tgbotapi.NewInlineKeyboardButtonData("high int", "high int"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("low adv", "low adv"),
+				tgbotapi.NewInlineKeyboardButtonData("mid adv", "mid adv"),
+				tgbotapi.NewInlineKeyboardButtonData("high adv", "high adv"),
+			),
+		)
+		bot.EditMessageTextAndMarkup(chatId, messageId, "Please enter the game level", levelKeyboard)
+		// bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
-		game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
-		game.CreatorId = update.Message.From.ID
-		bot.DeleteMessage(update.Message.Chat.ID, userMessageId)
-		bot.DeleteMessage(update.Message.Chat.ID, update.Message.ReplyToMessage.MessageID)
-		return NewActiveGamesCommandHandler(bot).HandleCommand(update)
+		// game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
+		game.Players = append(game.Players, fmt.Sprint("@", update.CallbackQuery.From.UserName))
+		// game.CreatorId = update.Message.From.ID
+		game.CreatorId = update.CallbackQuery.From.ID
+		// bot.DeleteMessage(chatId, userMessageId)
+		bot.DeleteMessage(chatId, messageId)
+		NewActiveGamesCommandHandler(bot).ShowAllGames(chatId)
+		return true
 	}
 	return false
 }
 
 func isReplyToTheBot(bot shared.BotAPI, update tgbotapi.Update) bool {
+	// Special case for handling inline keyboard
+	if update.CallbackQuery != nil {
+		return true
+	}
 	if update.Message.ReplyToMessage == nil {
 		return false
 	}

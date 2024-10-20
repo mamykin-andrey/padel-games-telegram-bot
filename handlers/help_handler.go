@@ -15,7 +15,7 @@ func NewHelpCommandHandler(bot shared.BotAPI) *HelpCommandHandler {
 }
 
 func (h *HelpCommandHandler) HandleCommand(update tgbotapi.Update) bool {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Supported commands: /help, /new, /games")
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Supported commands: /help, /new, /games, /join, /delete")
 	h.bot.SendMessage(msg)
 	return true
 }

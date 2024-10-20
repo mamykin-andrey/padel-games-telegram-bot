@@ -21,8 +21,10 @@ func (h *DeleteGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 	for i, g := range shared.Games {
 		if g.Id == gameId && g.CreatorId == userId {
 			shared.Games = append(shared.Games[:i], shared.Games[i+1:]...)
+			h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "The game has been deleted"))
+			return NewActiveGamesCommandHandler(h.bot).HandleCommand(update)
 		}
 	}
-	h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "The game has been deleted"))
-	return NewActiveGamesCommandHandler(h.bot).HandleCommand(update)
+	h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Only the creator can delete a game"))
+	return false
 }

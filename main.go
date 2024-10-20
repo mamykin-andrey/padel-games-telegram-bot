@@ -35,7 +35,7 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		if update.Message == nil {
+		if update.Message == nil && update.CallbackQuery == nil {
 			continue
 		}
 		if handleCommand(update) {
@@ -63,6 +63,9 @@ func initBot() *tgbotapi.BotAPI {
 }
 
 func handleCommand(update tgbotapi.Update) bool {
+	if update.Message == nil {
+		return false
+	}
 	command := removeDigits(update.Message.Command())
 	if handler, exists := registeredHandlers[command]; exists {
 		return handler.HandleCommand(update)
