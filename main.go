@@ -48,7 +48,7 @@ func main() {
 }
 
 func initBot() *tgbotapi.BotAPI {
-	token, ok := getEnvValue(botTokenEnvName)
+	token, ok := shared.GetEnvValue(botTokenEnvName)
 	if !ok || token == "" {
 		log.Panicf("%s is not set", botTokenEnvName)
 	}
@@ -58,7 +58,7 @@ func initBot() *tgbotapi.BotAPI {
 		log.Panic(err)
 	}
 	bot.Debug = true
-	debugLog("Authorized on account:", bot.Self.UserName)
+	shared.DebugLog("Authorized on account:", bot.Self.UserName)
 	return bot
 }
 
@@ -78,5 +78,5 @@ func parseCommand(update tgbotapi.Update) string {
 	} else {
 		input = update.Message.Command()
 	}
-	return removeDigits(input)
+	return shared.RemoveDigits(input)
 }

@@ -5,7 +5,6 @@ import (
 	"main/models"
 	"main/shared"
 	"strings"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -25,7 +24,8 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) {
 func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
 	activeGames := make([]models.Game, 0)
 	for _, g := range shared.Games {
-		if !isDatePassed(g.Date) && g.IsPublished {
+		gameDate, dateValid := shared.TryToParseDate(g.Date)
+		if (!dateValid || !shared.IsDatePassed(gameDate)) && g.IsPublished {
 			activeGames = append(activeGames, g)
 		}
 	}
@@ -52,33 +52,4 @@ func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
 		msg.ReplyMarkup = actionsKeyboard
 		h.bot.SendMessage(msg)
 	}
-}
-
-func tryToParseDate(dateStr string) (time.Time, bool) {
-	var date time.Time
-	var err error
-
-	date, err = time.Parse("02.01.2006", dateStr)
-	if err == nil {
-		return date, true
-	}
-
-	date, err = time.Parse("02.01.06", dateStr)
-	if err == nil {
-		if date.Year() > time.Now().Year() {
-			date = date.AddDate(-100, 0, 0)
-		}
-		return date, true
-	}
-
-	return date, false
-}
-
-func isDatePassed(dateStr string) bool {
-	date, ok := tryToParseDate(dateStr)
-	if !ok {
-		return false
-	}
-	today := time.Now()
-	return date.Before(today)
 }
