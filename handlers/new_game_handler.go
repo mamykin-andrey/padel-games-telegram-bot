@@ -147,17 +147,13 @@ func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
 			),
 		)
 		bot.EditMessageTextAndMarkup(chatId, messageId, "Please enter the game level", levelKeyboard)
-		// bot.DeleteMessage(chatId, userMessageId)
 		return true
 	case AwaitLevel:
 		userGameStates[userId] = NotStarted
 		game.Level = input
 		game.IsPublished = true
-		// game.Players = append(game.Players, fmt.Sprint("@", update.Message.From.UserName))
 		game.Players = append(game.Players, fmt.Sprint("@", update.CallbackQuery.From.UserName))
-		// game.CreatorId = update.Message.From.ID
 		game.CreatorId = update.CallbackQuery.From.ID
-		// bot.DeleteMessage(chatId, userMessageId)
 		bot.DeleteMessage(chatId, messageId)
 		NewActiveGamesCommandHandler(bot).ShowAllGames(chatId)
 		return true

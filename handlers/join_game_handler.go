@@ -19,19 +19,23 @@ func NewJoinGameCommandHandler(bot shared.BotAPI) *JoinGameCommandHandler {
 }
 
 func (h *JoinGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
+	command := update.CallbackQuery.Data
+	fromUserName := update.CallbackQuery.From.UserName
+	chatId := update.CallbackQuery.Message.Chat.ID
 	if len(shared.Games) == 0 {
 		return true
 	}
-	gameId, _ := strconv.Atoi(update.Message.Command()[4:])
+	gameId, _ := strconv.Atoi(command[4:])
 	game := &shared.Games[slices.IndexFunc(shared.Games, func(g models.Game) bool { return g.Id == gameId })]
-	userName := fmt.Sprint("@", update.Message.From.UserName)
+	userName := fmt.Sprint("@", fromUserName)
 	if isPlayerInGame(*game, userName) || game.IsFull() {
-		h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Already joined the game"))
+		h.bot.SendMessage(tgbotapi.NewMessage(chatId, "Already joined the game"))
 		return true
 	}
 	game.Players = append(game.Players, userName)
-	h.bot.SendMessage(tgbotapi.NewMessage(update.Message.Chat.ID, "Joined the game"))
-	return NewActiveGamesCommandHandler(h.bot).HandleCommand(update)
+	h.bot.SendMessage(tgbotapi.NewMessage(chatId, "Joined the game"))
+	NewActiveGamesCommandHandler(h.bot).ShowAllGames(chatId)
+	return true
 }
 
 func isPlayerInGame(game models.Game, userName string) bool {

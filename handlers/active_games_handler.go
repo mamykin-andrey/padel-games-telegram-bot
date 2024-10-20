@@ -42,10 +42,15 @@ func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
 			"\n📊 Level: ", g.Level,
 			"\n📍 Location: ", g.Place,
 			"\n🏋🏻‍♂️ Players: ", 4-g.NumberOfSpots, " + ", gamePlayers,
-			"\nJoin: /join", g.Id,
-			"\nDelete: /delete", g.Id,
 		)
 		msg := tgbotapi.NewMessage(chatId, gameStr)
+		actionsKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("Join", fmt.Sprint("join", g.Id)),
+				tgbotapi.NewInlineKeyboardButtonData("Delete", fmt.Sprint("delete", g.Id)),
+			),
+		)
+		msg.ReplyMarkup = actionsKeyboard
 		h.bot.SendMessage(msg)
 	}
 }

@@ -63,12 +63,19 @@ func initBot() *tgbotapi.BotAPI {
 }
 
 func handleCommand(update tgbotapi.Update) bool {
-	if update.Message == nil {
-		return false
-	}
-	command := removeDigits(update.Message.Command())
+	command := parseCommand(update)
 	if handler, exists := registeredHandlers[command]; exists {
 		return handler.HandleCommand(update)
 	}
 	return false
+}
+
+func parseCommand(update tgbotapi.Update) string {
+	var input string
+	if update.CallbackQuery != nil {
+		input = update.CallbackQuery.Data
+	} else {
+		input = update.Message.Command()
+	}
+	return removeDigits(input)
 }
