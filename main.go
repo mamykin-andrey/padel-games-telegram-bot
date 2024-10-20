@@ -9,7 +9,7 @@ import (
 )
 
 type CommandHandler interface {
-	HandleCommand(update tgbotapi.Update) bool
+	HandleCommand(update tgbotapi.Update)
 }
 
 const botTokenEnvName = "PADEL_BOT_TOKEN"
@@ -65,7 +65,8 @@ func initBot() *tgbotapi.BotAPI {
 func handleCommand(update tgbotapi.Update) bool {
 	command := parseCommand(update)
 	if handler, exists := registeredHandlers[command]; exists {
-		return handler.HandleCommand(update)
+		handler.HandleCommand(update)
+		return true
 	}
 	return false
 }

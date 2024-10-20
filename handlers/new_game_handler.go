@@ -33,10 +33,9 @@ func NewNewGameCommandHandler(bot shared.BotAPI) *NewGameCommandHandler {
 	return &NewGameCommandHandler{bot: bot}
 }
 
-func (h *NewGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
+func (h *NewGameCommandHandler) HandleCommand(update tgbotapi.Update) {
 	userGameStates[update.Message.From.ID] = Started
 	transitionGameState(h.bot, update)
-	return true
 }
 
 func (h *NewGameCommandHandler) HandleNewGameMessage(update tgbotapi.Update) bool {

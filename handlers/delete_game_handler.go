@@ -15,7 +15,7 @@ func NewDeleteGameCommandHandler(bot shared.BotAPI) *DeleteGameCommandHandler {
 	return &DeleteGameCommandHandler{bot: bot}
 }
 
-func (h *DeleteGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
+func (h *DeleteGameCommandHandler) HandleCommand(update tgbotapi.Update) {
 	command := update.CallbackQuery.Data
 	chatId := update.CallbackQuery.Message.Chat.ID
 	gameId, _ := strconv.Atoi(command[4:])
@@ -25,9 +25,8 @@ func (h *DeleteGameCommandHandler) HandleCommand(update tgbotapi.Update) bool {
 			shared.Games = append(shared.Games[:i], shared.Games[i+1:]...)
 			h.bot.SendMessage(tgbotapi.NewMessage(chatId, "The game has been deleted"))
 			NewActiveGamesCommandHandler(h.bot).ShowAllGames(chatId)
-			return true
+			return
 		}
 	}
 	h.bot.SendMessage(tgbotapi.NewMessage(chatId, "Only the creator can delete a game"))
-	return false
 }

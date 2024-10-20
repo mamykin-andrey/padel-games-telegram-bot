@@ -18,9 +18,8 @@ func NewActiveGamesCommandHandler(bot shared.BotAPI) *ActiveGamesCommandHandler 
 	return &ActiveGamesCommandHandler{bot: bot}
 }
 
-func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) bool {
+func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) {
 	h.ShowAllGames(update.Message.Chat.ID)
-	return true
 }
 
 func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
