@@ -35,15 +35,19 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		if update.Message == nil && update.CallbackQuery == nil {
-			continue
-		}
-		if handleCommand(update) {
-			continue
-		}
-		if newGameHandler.HandleNewGameMessage(update) {
-			continue
-		}
+		go handleUpdate(update)
+	}
+}
+
+func handleUpdate(update tgbotapi.Update) {
+	if update.Message == nil && update.CallbackQuery == nil {
+		return
+	}
+	if handleCommand(update) {
+		return
+	}
+	if newGameHandler.HandleNewGameMessage(update) {
+		return
 	}
 }
 

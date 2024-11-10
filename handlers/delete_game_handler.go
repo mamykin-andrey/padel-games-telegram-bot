@@ -20,9 +20,9 @@ func (h *DeleteGameCommandHandler) HandleCommand(update tgbotapi.Update) {
 	chatId := update.CallbackQuery.Message.Chat.ID
 	gameId, _ := strconv.Atoi(command[4:])
 	userId := update.CallbackQuery.From.ID
-	for i, g := range shared.Games {
+	for i, g := range shared.State.Games() {
 		if g.Id == gameId && g.CreatorId == userId {
-			shared.Games = append(shared.Games[:i], shared.Games[i+1:]...)
+			shared.State.Remove(i)
 			h.bot.SendMessage(tgbotapi.NewMessage(chatId, "The game has been deleted"))
 			NewActiveGamesCommandHandler(h.bot).ShowAllGames(chatId)
 			return

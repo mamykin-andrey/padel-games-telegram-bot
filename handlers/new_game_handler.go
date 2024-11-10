@@ -78,10 +78,10 @@ func transitionGameState(bot shared.BotAPI, update tgbotapi.Update) bool {
 		return false
 	}
 	if gameState == Started {
-		shared.Games = append(shared.Games, models.Game{Id: currentGameId})
+		shared.State.Add(models.Game{Id: currentGameId})
 		currentGameId++
 	}
-	game := &shared.Games[len(shared.Games)-1]
+	game := &shared.State.Games()[len(shared.State.Games())-1]
 	switch gameState {
 	case Started:
 		userGameStates[userId] = AwaitDate

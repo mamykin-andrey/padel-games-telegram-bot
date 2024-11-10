@@ -23,7 +23,7 @@ func (h *ActiveGamesCommandHandler) HandleCommand(update tgbotapi.Update) {
 
 func (h *ActiveGamesCommandHandler) ShowAllGames(chatId int64) {
 	activeGames := make([]models.Game, 0)
-	for _, g := range shared.Games {
+	for _, g := range shared.State.Games() {
 		gameDate, dateValid := shared.TryToParseDate(g.Date)
 		if (!dateValid || !shared.IsDatePassed(gameDate)) && g.IsPublished {
 			activeGames = append(activeGames, g)
